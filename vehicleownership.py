@@ -23,7 +23,7 @@ state = '36'
 county = '005,047,061,081,085'
 
 # Files
-path = 'C:/Users/M_Free/Desktop/GitHub/td-vehicleownership/'
+path = 'C:/Users/M_Free/Desktop/td-vehicleownership/'
 
 # Regression Variables and Results 
 boro_li = ['Bronx', 'Brooklyn', 'Manhattan', 'Queens', 'Staten Island']
@@ -41,7 +41,7 @@ def reg_analysis_nyc(df, y_var):
     b0 = reg.intercept_
     b1 = reg.coef_
     b0b1 = b0 + b1[0]
-    row = {'geo': 'New York City', 'y_var': y_var, 'r_sq': r_sq, 'b0': b0, 'b1': b1[0], 'b0b1': b0b1}
+    row = {'r_sq': r_sq, 'b0': b0, 'b1': b1[0], 'b0b1': b0b1}
     return row
 
 def reg_analysis_boro(df, boro, y_var):
@@ -53,15 +53,15 @@ def reg_analysis_boro(df, boro, y_var):
     b0 = reg.intercept_
     b1 = reg.coef_
     b0b1 = b0 + b1[0]
-    row = {'geo': boro, 'y_var': y_var, 'r_sq': r_sq, 'b0': b0, 'b1': b1[0], 'b0b1': b0b1}
+    row = {'r_sq': r_sq, 'b0': b0, 'b1': b1[0], 'b0b1': b0b1}
     return row
 
 # Visual Elements 
-boro_colors = {'Bronx':'rgba(114,158,206,0.7)',
-               'Brooklyn':'rgba(255,158,74,0.7)',
-               'Manhattan':'rgba(103,191,92,0.7)',
-               'Queens':'rgba(237,102,93,0.7)',
-               'Staten Island':'rgba(173,139,201,0.7)'}
+boro_colors = {'Bronx':'rgba(114,158,206,0.5)',
+               'Brooklyn':'rgba(255,158,74,0.5)',
+               'Manhattan':'rgba(103,191,92,0.5)',
+               'Queens':'rgba(237,102,93,0.5)',
+               'Staten Island':'rgba(173,139,201,0.5)'}
 
 #%% Travel Mode: Data Cleaning and Regression 
 
@@ -121,12 +121,12 @@ mode_df['Hover_Active Transport'] = hover_template + '<br><b>Workers Commuting b
 # run regression model 
 for mode in mode_li:
     row = reg_analysis_nyc(mode_df, mode)
-    reg_df.loc[('New York City', mode),:] = row
+    reg_df.loc[('New York City', mode),:] = list(row.values())
 
 for boro in boro_li:
     for mode in mode_li:
         row = reg_analysis_boro(mode_df, boro, mode)
-        reg_df.loc[(boro, mode), :] = row
+        reg_df.loc[(boro, mode), :] = list(row.values())
 
 #%% Travel Mode: Visualization
 
@@ -137,8 +137,7 @@ fig = ps.make_subplots(rows = 1,
                        y_title = '<b>% of Households with a Vehicle</b>',
                        subplot_titles = mode_li)
 
-# create scatterplots for each mode 
-count = 0
+# create NYC scatterplots for each mode 
 for mode in mode_li:
     for boro, color in boro_colors.items():
         fig.add_trace(go.Scatter(name = 'Census Tracts',
@@ -154,12 +153,47 @@ for mode in mode_li:
                                  hoverinfo = 'text',
                                  hovertext = mode_df.loc[mode_df['Boro'] == boro, 'Hover_' + mode],
                                  legendgroup = 'New York City',
-                                 legendgrouptitle_text = 'New York City',
-                                 showlegend = True if count < 5 else False),
+                                 showlegend = False),
                       row = 1,
                       col = mode_li.index(mode) + 1)
-        count = count + 1
 
+# add NYC legend marker 
+count = 0        
+for mode in mode_li:
+    fig.add_trace(go.Scatter(name = 'Census Tracts', 
+                             x = [-1],
+                             y = [-1],
+                             mode = 'markers',
+                             marker = {'color': 'rgba(0,0,0,0.5)',
+                                       'size': 15},    
+                             legendgroup = 'New York City',
+                             legendgrouptitle_text = 'New York City',
+                             showlegend = True if count < 1 else False))
+    count = count + 1
+    
+# count = 0
+# for mode in mode_li:
+#     for boro, color in boro_colors.items():
+#         fig.add_trace(go.Scatter(name = 'Census Tracts',
+#                                  x = mode_df.loc[mode_df['Boro'] == boro, '% Households w/ Vehicle'], 
+#                                  y = mode_df.loc[mode_df['Boro'] == boro, '% ' + mode], 
+#                                  mode = 'markers',
+#                                  marker = {'color': color,
+#                                            'line': {'width': .2},
+#                                            'size': mode_df.loc[mode_df['Boro'] == boro, 'Households'],
+#                                            'sizemode': 'area',
+#                                            'sizeref': 2.*max(mode_df.loc[mode_df['Boro'] == boro, 'Households'])/(15.**2),
+#                                            'sizemin': 1.5},
+#                                  hoverinfo = 'text',
+#                                  hovertext = mode_df.loc[mode_df['Boro'] == boro, 'Hover_' + mode],
+#                                  legendgroup = 'New York City',
+#                                  legendgrouptitle_text = 'New York City',
+#                                  showlegend = True if count < 5 else False),
+#                       row = 1,
+#                       col = mode_li.index(mode) + 1)
+#         count = count + 1
+
+# create borough scatterplots for each mode 
 count = 0
 for mode in mode_li:
     for boro, color in boro_colors.items():
@@ -183,39 +217,42 @@ for mode in mode_li:
                       col = mode_li.index(mode) + 1)
         count = count + 1
                         
-# add line of best fit for each mode 
+# add NYC line of best fit for each mode 
 count = 0
 for mode in mode_li:
-    fig.add_trace(go.Scatter(name = 'Line of Best Fit',
+    fig.add_trace(go.Scatter(name = 'Line of Best Fit*',
                              x = [0,1],
                              y = [reg_df.loc[('New York City', mode),'b0'], reg_df.loc[('New York City', mode), 'b0b1']],
                              mode = 'lines',
                              line = {'color': 'rgba(0,0,0,0.5)',
                                      'width': 2},
-                             hoverinfo = 'none',
+                             hoverinfo = 'text',
+                             hovertext = '<b>R<sup>2</sup> : </b>' + str(round(reg_df.loc[('New York City', mode),'r_sq'], 2)), 
                              legendgroup = 'New York City',
                              showlegend = True if count < 1 else False),
                   row = 1, 
                   col = mode_li.index(mode) + 1)
     count = count + 1
 
+# add boro line of best fit for each mode 
 count = 0
 for mode in mode_li:
     for boro, color in boro_colors.items():
-        fig.add_trace(go.Scatter(name = 'Line of Best Fit',
+        fig.add_trace(go.Scatter(name = 'Line of Best Fit*',
                                  x = [0,1],
                                  y = [reg_df.loc[(boro, mode), 'b0'], reg_df.loc[(boro, mode), 'b0b1']],
                                  mode = 'lines',
                                  line = {'color': color,
                                          'width': 2},
-                                 hoverinfo = 'none',
+                                 hoverinfo = 'text',
+                                 hovertext = '<b>R<sup>2</sup> : </b>' + str(round(reg_df.loc[(boro, mode),'r_sq'], 2)), 
                                  legendgroup = boro,
                                  showlegend = True if count < 1 else False,
                                  visible = 'legendonly'),
                       row = 1, 
                       col = mode_li.index(mode) + 1)
     count = count + 1
-
+    
 # edit x axis for each subplot 
 for mode in mode_li:
     fig.update_xaxes(patch = {'title': {'font_size': 14},
@@ -229,8 +266,8 @@ for mode in mode_li:
 # edit overall layout
 fig.update_layout(template = 'plotly_white',
                   title = {'text': '<b>Vehicle Ownership vs. Commute Mode</b>',
-                           'font_size': 20,
-                           'x': .52,
+                           'font_size': 22,
+                           'x': .15,
                            'xanchor': 'center',
                            'y': .95,
                            'yanchor': 'top'},
@@ -242,15 +279,15 @@ fig.update_layout(template = 'plotly_white',
                   legend = {'traceorder': 'grouped',
                             'orientation': 'h',
                             'title_text': '', 
-                            'font_size': 14,
-                            'x': .5, 
+                            'font_size': 12,
+                            'x': .75, 
                             'xanchor': 'center',
-                            'y': 1.1,
+                            'y': 1.13,
                             'yanchor': 'top'},
-                  margin = {'b': 120,
+                  margin = {'b': 100,
                             'l': 80,
                             'r': 40,
-                            't': 120},
+                            't': 115},
                   hoverlabel = {'font_size': 14}, 
                   font = {'family': 'Arial',
                           'color': 'black'},
@@ -259,30 +296,29 @@ fig.update_layout(template = 'plotly_white',
 # edit subplot titles 
 for mode in mode_li:
     fig.layout.annotations[mode_li.index(mode)].update(y = 1, 
-                                                        yanchor = 'top',
-                                                        yref = 'paper',
-                                                        yshift = -20,
-                                                        bgcolor = 'rgba(162,162,162,0.4)',
-                                                        text = '<b>' + mode + '</b>',
-                                                        font = {'size': 14,
-                                                                'family': 'Arial'})
-    
-# ' (R<sup>2</sup> = ' + str(round(reg_df.loc[mode,'r_sq'], 2)) + ')    
+                                                       yanchor = 'top',
+                                                       yref = 'paper',
+                                                       yshift = -20,
+                                                       bgcolor = 'rgba(162,162,162,0.4)',
+                                                       text = '<b>' + mode + '</b>',
+                                                       font = {'size': 14,
+                                                               'family': 'Arial'})
+     
 # add source
-fig.add_annotation(text = 'Data Source: <a href="https://www.census.gov/programs-surveys/acs/microdata/access.2019.html" target="blank">2015-2019 ACS</a> | <a href="https://raw.githubusercontent.com/NYCPlanning/td-vehicleownership/output/mode.csv" target="blank">Download Chart Data</a>',
+fig.add_annotation(text = '*Hover over line end points for the R-Squared value<br>Data Source: <a href="https://www.census.gov/programs-surveys/acs/microdata/access.2019.html" target="blank">2015-2019 ACS</a> | <a href="https://raw.githubusercontent.com/NYCPlanning/td-trends/main/commute/temp/mode.csv" target="blank">Download Chart Data</a>',
                    font_size = 12,
                    showarrow = False, 
                    x = 1, 
                    xanchor = 'right',
                    xref = 'paper',
-                   y = -.125,
+                   y = -.1,
                    yanchor = 'top',
                    yref = 'paper')
 
 fig.show()
 
-# fig.write_html(path + 'output/mode.html',
-#               include_plotlyjs='cdn',
-#               config={'displayModeBar':False})
+fig.write_html(path + 'output/mode.html',
+              include_plotlyjs='cdn',
+              config={'displayModeBar':False})
 
 # https://nycplanning.github.io/td-vehicleownership/output/mode.html                      
