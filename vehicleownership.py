@@ -317,8 +317,8 @@ fig.add_annotation(text = '*Hover over line end points for the R-Squared value<b
 
 fig.show()
 
-fig.write_html(path + 'output/mode.html',
-              include_plotlyjs='cdn',
-              config={'displayModeBar':False})
+# fig.write_html(path + 'output/mode.html',
+#               include_plotlyjs='cdn',
+#               config={'displayModeBar':False})
 
 # https://nycplanning.github.io/td-vehicleownership/output/mode.html                      
