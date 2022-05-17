@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Vehicle Ownership 
+Vehicle Ownership (Linear Regression) 
 """
 import pandas as pd
 import requests
@@ -10,6 +10,8 @@ import plotly.subplots as ps
 import plotly.io as pio
 from sklearn.linear_model import LinearRegression
 pio.renderers.default = 'browser'
+
+path = 'C:/Users/M_Free/Desktop/td-vehicleownership/'
 
 # DCP proxy
 usernm = pd.read_csv('C:/Users/M_Free/Desktop/key.csv',dtype=str).loc[0,'username']
@@ -21,9 +23,6 @@ p={'http':'http://'+str(usernm)+':'+str(passwd)+'@dcpproxy1.dcp.nycnet:8080',
 key = pd.read_csv('C:/Users/M_Free/Desktop/key_census.csv',dtype=str).loc[0, 'key']
 state = '36'
 county = '005,047,061,081,085'
-
-# Files
-path = 'C:/Users/M_Free/Desktop/td-vehicleownership/'
 
 # Regression Variables and Results 
 boro_li = ['Bronx', 'Brooklyn', 'Manhattan', 'Queens', 'Staten Island']
@@ -109,7 +108,7 @@ mode_df['% Active Transport'] = (mode_df['Bike'] + mode_df['Walk']) / mode_df['W
 mode_df = mode_df.loc[~((mode_df['Households'] == 0) | (mode_df['Workers 16+'] == 0))]
 
 # export df
-# mode_df.to_csv(path + 'output/mode.csv', index = False)
+# mode_df.to_csv(path + 'output/mode_reg.csv', index = False)
 
 # add hover text
 mode_df['CT'] = mode_df['GEO_ID'].str[5:11]
@@ -317,8 +316,8 @@ fig.add_annotation(text = '*Hover over line end points for the R-Squared value<b
 
 fig.show()
 
-# fig.write_html(path + 'output/mode.html',
+# fig.write_html(path + 'output/mode_reg.html',
 #               include_plotlyjs='cdn',
 #               config={'displayModeBar':False})
 
-# https://nycplanning.github.io/td-vehicleownership/output/mode.html                      
+# https://nycplanning.github.io/td-vehicleownership/output/mode_reg.html                      
