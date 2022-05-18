@@ -6,6 +6,10 @@ import pandas as pd
 import requests
 import geopandas as gpd
 
+import plotly.graph_objects as go
+import plotly.io as pio
+pio.renderers.default = 'browser'
+
 path = 'C:/Users/M_Free/Desktop/td-vehicleownership/'
 
 # DCP proxy
@@ -87,6 +91,39 @@ mode_df = mode_df.loc[~(mode_df.CDTA.isin(del_cdta))]
 
 # export df
 # mode_df.to_csv(path + 'output/mode_cor.csv', index = False)
+            
+#%% Scatterplot 
+
+mode_df['Boro'] = mode_df['CDTA'].apply(lambda x: x[:2])
+mode_df['Hover'] = '<b>CDTA: </b>' + mode_df['CDTAName'] + '<br><b>Census Tract: </b>' + mode_df['CT2020'] +'<br><b>Total Households: </b>' + mode_df['Households'].map('{:,.0f}'.format) + '<br><b>Households with a Vehicle: </b>' + mode_df['% Households w/ Vehicle'].map('{:.0%}'.format) + '<br><b>Total Workers: </b>' + mode_df['Workers 16+'].map('{:,.0f}'.format)  + '<br><b>Workers Commuting by Auto: </b>'+ mode_df['% Auto'].map('{:.0%}'.format)
+cdta_li = list(mode_df['CDTA'].unique())
+
+fig = go.Figure()
+
+for boro in ['BX', 'BK', 'MN', 'QN', 'SI']:
+    for cdta in cdta_li:
+        fig.add_trace(go.Scatter(name = cdta,
+                                  x =  mode_df.loc[(mode_df['Boro'] == boro) & (mode_df['CDTA'] == cdta), '% Households w/ Vehicle'], 
+                                  y =  mode_df.loc[(mode_df['Boro'] == boro) & (mode_df['CDTA'] == cdta), '% Auto'],
+                                  mode = 'markers',
+                                  hoverinfo = 'text',
+                                  hovertext =  mode_df.loc[(mode_df['Boro'] == boro) & (mode_df['CDTA'] == cdta), 'Hover'],
+                                  legendgroup = boro,
+                                  legendgrouptitle_text = boro))
+
+fig.update_layout(template = 'plotly_dark',
+                  title = {'text': '<b>Vehicle Ownership vs. Commute by Auto</b>'},
+                  xaxis = {'title': '% of Households w/ Vehicles',
+                           'tickformat': ',.0%'},
+                  yaxis = {'title' : '% of Workers Commuting by Auto',
+                           'tickformat': ',.0%'},
+                  legend = {'groupclick': 'toggleitem'})
+
+fig.show()
+
+fig.write_html(path + 'output/auto_corr.html',
+               include_plotlyjs='cdn',
+               config={'displayModeBar':False})
 
 #%% Correlation
  
@@ -115,11 +152,11 @@ output_df = output_df.merge(corr_df, on = 'CDTA')
 cdta_gdf = gpd.read_file('C:/Users/M_Free/OneDrive - NYC O365 HOSTED/Projects/Geographies/cdta20.geojson', driver = 'GeoJSON')        
 cdta_gdf.rename(columns = {'cdta2020': 'CDTA'}, inplace = True)
 cdta_gdf = cdta_gdf.merge(output_df, on = 'CDTA')
+# cdta_gdf.to_file(path + 'output/output.json', driver = 'GeoJSON')
 
-bins_li = [-.25, 0, .25, .5, .75, 1]    
-           
-cdta_gdf.plot(column = 'Auto',
-              scheme = 'user_defined',
-              cmap = 'PRGn',
-              classification_kwds = {'bins': bins_li},
-              legend = True)
+# bins_li = [-.25, 0, .25, .5, .75, 1]    
+# cdta_gdf.plot(column = 'Auto',
+#               scheme = 'user_defined',
+#               cmap = 'PRGn',
+#               classification_kwds = {'bins': bins_li},
+#               legend = True)
