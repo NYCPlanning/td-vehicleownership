@@ -89,6 +89,8 @@ mode_df['% Active Transport'] = (mode_df['Bike'] + mode_df['Walk']) / mode_df['W
 mode_df = mode_df.loc[~((mode_df['Households'] == 0) | (mode_df['Workers 16+'] == 0))]
 mode_df = mode_df.loc[~(mode_df.CDTA.isin(del_cdta))]
 
+mode_df = mode_df.sort_values(by = ['CDTA']).reset_index()
+
 # export df
 # mode_df.to_csv(path + 'output/mode_cor.csv', index = False)
             
@@ -100,43 +102,68 @@ cdta_li = list(mode_df['CDTA'].unique())
 
 fig = go.Figure()
 
-for boro in ['BX', 'BK', 'MN', 'QN', 'SI']:
+for boro in ['BK', 'BX', 'MN', 'QN', 'SI']:
     for cdta in cdta_li:
         fig.add_trace(go.Scatter(name = cdta,
                                   x =  mode_df.loc[(mode_df['Boro'] == boro) & (mode_df['CDTA'] == cdta), '% Households w/ Vehicle'], 
                                   y =  mode_df.loc[(mode_df['Boro'] == boro) & (mode_df['CDTA'] == cdta), '% Auto'],
                                   mode = 'markers',
+                                  marker = {'line': {'width': .2},
+                                            'size': mode_df.loc[(mode_df['Boro'] == boro) & (mode_df['CDTA'] == cdta), 'Households'],
+                                            'sizemode': 'area',
+                                            'sizeref': 2.*max(mode_df['Households'])/(15.**2),
+                                            'sizemin': 1.5},
                                   hoverinfo = 'text',
                                   hovertext =  mode_df.loc[(mode_df['Boro'] == boro) & (mode_df['CDTA'] == cdta), 'Hover'],
                                   legendgroup = boro,
                                   legendgrouptitle_text = boro))
-
+       
 fig.update_layout(template = 'plotly_dark',
                   title = {'text': '<b>Vehicle Ownership vs. Commute by Auto</b>'},
                   xaxis = {'title': '% of Households w/ Vehicles',
-                           'tickformat': ',.0%'},
+                           'tickformat': ',.0%',
+                           'range': [0,1]},
                   yaxis = {'title' : '% of Workers Commuting by Auto',
-                           'tickformat': ',.0%'},
+                           'tickformat': ',.0%',
+                           'range': [0,1]},
                   legend = {'groupclick': 'toggleitem'})
 
-fig.show()
+fig.add_annotation(text = 'Data Source: <a href="https://www.census.gov/programs-surveys/acs/microdata/access.2019.html" target="blank">2015-2019 ACS</a> | <a href="https://raw.githubusercontent.com/NYCPlanning/td-trends/main/commute/temp/mode.csv" target="blank">Download Chart Data</a>',
+                   font_size = 12,
+                   showarrow = False, 
+                   x = 1, 
+                   xanchor = 'right',
+                   xref = 'paper',
+                   y = -.1,
+                   yanchor = 'top',
+                   yref = 'paper')
 
-fig.write_html(path + 'output/auto_corr.html',
-               include_plotlyjs='cdn',
-               config={'displayModeBar':False})
+fig.update_layout(modebar_remove = ['select', 'zoomIn', 'zoomOut', 'autoScale', 'lasso2d'])
+
+# fig.show()
+
+# fig.write_html(path + 'output/auto_corr.html',
+#                 include_plotlyjs = 'cdn',
+#                 config = {'displaylogo': False})
 
 #%% Correlation
- 
+
+mode_corr_df = mode_df.loc[mode_df.index.repeat(mode_df.Households)] 
+
+mode_corr_df['CT2020'].value_counts()
 mode_li = ['Auto', 'Public Transit', 'Active Transport']
 
 for mode in mode_li:
     corr_df['Corr ' + mode] = ''
     for cdta in cdta_li: 
-        col = get_corr(mode_df, cdta, mode)
+        col = get_corr(mode_corr_df, cdta, mode)
         corr_df.loc[cdta, 'Corr ' + mode] = col 
+        
+corr_df = corr_df.astype(float)
 
 corr_df.reset_index(inplace = True)
 corr_df = corr_df.rename(columns = {'index': 'CDTA'})
+
 # corr_df.to_csv(path + 'output/corr.csv', index = False)   
 
 #%% Output
@@ -152,7 +179,10 @@ output_df = output_df.merge(corr_df, on = 'CDTA')
 cdta_gdf = gpd.read_file('C:/Users/M_Free/OneDrive - NYC O365 HOSTED/Projects/Geographies/cdta20.geojson', driver = 'GeoJSON')        
 cdta_gdf.rename(columns = {'cdta2020': 'CDTA'}, inplace = True)
 cdta_gdf = cdta_gdf.merge(output_df, on = 'CDTA')
-# cdta_gdf.to_file(path + 'output/output.json', driver = 'GeoJSON')
+
+cdta_gdf['Corr Auto'] = cdta_gdf['Corr Auto'].astype(float)
+
+cdta_gdf.to_file(path + 'output/output_test.json', driver = 'GeoJSON')
 
 # bins_li = [-.25, 0, .25, .5, .75, 1]    
 # cdta_gdf.plot(column = 'Auto',
@@ -160,3 +190,9 @@ cdta_gdf = cdta_gdf.merge(output_df, on = 'CDTA')
 #               cmap = 'PRGn',
 #               classification_kwds = {'bins': bins_li},
 #               legend = True)
+
+#efe6d3
+#d4eae6
+#91d3c8
+#4aae9f
+#018571
